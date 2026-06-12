@@ -24,6 +24,8 @@ frontend that works on desktop and mobile.
   share to each side). Resolving cancels and refunds all open orders.
 - A **leaderboard** ranks everyone by net worth (cash + open orders +
   positions marked at the last traded price).
+- A **portfolio** page shows all of your open orders (cancellable from there)
+  and every position you hold across markets.
 
 ## Development
 
@@ -62,7 +64,29 @@ Configuration (environment variables):
 
 The whole app is a single Node process with a SQLite file, so it deploys
 anywhere you can run a container or a Node server (Fly.io, Railway, Render, a
-$5 VPS, ...). Just make sure the database path is on a persistent volume.
+$5 VPS, ...). The only state is the SQLite file, so point `DATABASE_PATH` at
+storage that survives restarts.
+
+### Deploying to Fly.io
+
+Fly machines have ephemeral filesystems, so the database goes on a persistent
+[Fly volume](https://fly.io/docs/volumes/). A ready-to-use `fly.toml` is
+included — it mounts a volume at `/data` and sets `DATABASE_PATH=/data/pred.db`:
+
+```bash
+fly launch --no-deploy        # creates the app; keep the provided fly.toml
+fly volumes create pred_data --size 1
+fly deploy
+```
+
+Notes:
+
+- Run a **single machine** (the default with one volume): SQLite doesn't
+  replicate across machines. `fly scale count 1` if you ever scaled up.
+- The volume persists across deploys and restarts; everything else in the
+  container is rebuilt each deploy.
+- Optionally `fly secrets set JWT_SECRET=...` — otherwise a generated secret
+  is persisted inside the database and sessions survive restarts anyway.
 
 ## Admin notes
 

@@ -5,6 +5,7 @@ import LoginPage from "./pages/Login";
 import MarketsPage from "./pages/Markets";
 import MarketDetailPage from "./pages/MarketDetail";
 import LeaderboardPage from "./pages/Leaderboard";
+import PortfolioPage from "./pages/Portfolio";
 
 function Header() {
   const { user, logout } = useAuth();
@@ -16,6 +17,7 @@ function Header() {
       {user && (
         <nav className="nav">
           <Link to="/">Markets</Link>
+          <Link to="/portfolio">Portfolio</Link>
           <Link to="/leaderboard">Leaderboard</Link>
           <span className="balance" title="Cash balance">
             {cents(user.balance)}
@@ -46,6 +48,7 @@ export default function App() {
             <>
               <Route path="/" element={<MarketsPage />} />
               <Route path="/market/:id" element={<MarketDetailPage />} />
+              <Route path="/portfolio" element={<PortfolioPage />} />
               <Route path="/leaderboard" element={<LeaderboardPage />} />
               <Route path="*" element={<Navigate to="/" replace />} />
             </>

@@ -193,6 +193,47 @@ api.post("/admin/users/:id/promote", requireAuth, requireAdmin, (req, res) => {
   res.json({ ok: true });
 });
 
+// ---- Portfolio ----
+
+api.get("/portfolio", requireAuth, (req, res) => {
+  const userId = req.user!.id;
+  const orders = db
+    .prepare(
+      `SELECT o.id, o.market_id, m.title AS market_title, o.side, o.price,
+              o.quantity, o.remaining, o.created_at
+       FROM orders o JOIN markets m ON m.id = o.market_id
+       WHERE o.user_id = ? AND o.status = 'open'
+       ORDER BY o.id DESC`
+    )
+    .all(userId);
+
+  const positions = (
+    db
+      .prepare(
+        `SELECT p.market_id, m.title AS market_title, p.yes_shares, p.no_shares
+         FROM positions p JOIN markets m ON m.id = p.market_id
+         WHERE p.user_id = ? AND m.status = 'open'
+           AND (p.yes_shares > 0 OR p.no_shares > 0)
+         ORDER BY p.market_id DESC`
+      )
+      .all(userId) as {
+      market_id: number;
+      market_title: string;
+      yes_shares: number;
+      no_shares: number;
+    }[]
+  ).map((p) => {
+    const last = lastTradePrice(p.market_id) ?? 50;
+    return {
+      ...p,
+      lastPrice: lastTradePrice(p.market_id),
+      value: p.yes_shares * last + p.no_shares * (100 - last),
+    };
+  });
+
+  res.json({ balance: req.user!.balance, orders, positions });
+});
+
 // ---- Leaderboard ----
 
 api.get("/leaderboard", requireAuth, (_req, res) => {
