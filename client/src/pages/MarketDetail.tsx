@@ -1,7 +1,15 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { api, cents, type MarketDetail } from "../api";
+import { api, cents, type Candle, type MarketDetail } from "../api";
 import { useAuth } from "../auth";
+import CandleChart from "../components/CandleChart";
+
+const INTERVALS = [
+  { key: "5m", label: "5m", seconds: 300 },
+  { key: "1h", label: "1h", seconds: 3600 },
+  { key: "6h", label: "6h", seconds: 21600 },
+  { key: "1d", label: "1d", seconds: 86400 },
+] as const;
 
 export default function MarketDetailPage() {
   const { id } = useParams();
@@ -9,6 +17,9 @@ export default function MarketDetailPage() {
   const [data, setData] = useState<MarketDetail | null>(null);
   const [error, setError] = useState("");
   const [notFound, setNotFound] = useState(false);
+
+  const [candles, setCandles] = useState<Candle[]>([]);
+  const [intervalKey, setIntervalKey] = useState<(typeof INTERVALS)[number]["key"]>("1h");
 
   const [side, setSide] = useState<"YES" | "NO">("YES");
   const [price, setPrice] = useState("50");
@@ -18,14 +29,18 @@ export default function MarketDetailPage() {
 
   const load = useCallback(async () => {
     try {
-      const d = await api<MarketDetail>(`/markets/${id}`);
+      const [d, c] = await Promise.all([
+        api<MarketDetail>(`/markets/${id}`),
+        api<{ candles: Candle[] }>(`/markets/${id}/candles?interval=${intervalKey}`),
+      ]);
       setData(d);
+      setCandles(c.candles);
     } catch (err) {
       if (err instanceof Error && err.message.includes("not found")) {
         setNotFound(true);
       }
     }
-  }, [id]);
+  }, [id, intervalKey]);
 
   useEffect(() => {
     load();
@@ -156,6 +171,28 @@ export default function MarketDetailPage() {
             </button>
           </div>
         )}
+      </div>
+
+      <div className="card">
+        <div className="row-between wrap">
+          <h3>Price history (YES)</h3>
+          <div className="tabs interval-tabs">
+            {INTERVALS.map((option) => (
+              <button
+                key={option.key}
+                type="button"
+                className={intervalKey === option.key ? "tab active" : "tab"}
+                onClick={() => setIntervalKey(option.key)}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        </div>
+        <CandleChart
+          candles={candles}
+          interval={INTERVALS.find((o) => o.key === intervalKey)!.seconds}
+        />
       </div>
 
       <div className="market-grid">

@@ -51,6 +51,15 @@ export interface MarketDetail {
   balance: number;
 }
 
+export interface Candle {
+  time: number;
+  open: number;
+  high: number;
+  low: number;
+  close: number;
+  volume: number;
+}
+
 export interface LeaderboardRow {
   id: number;
   username: string;

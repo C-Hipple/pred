@@ -144,6 +144,56 @@ api.get("/markets/:id", requireAuth, (req, res) => {
   });
 });
 
+const CANDLE_INTERVALS: Record<string, number> = {
+  "5m": 300,
+  "1h": 3600,
+  "6h": 21600,
+  "1d": 86400,
+};
+
+api.get("/markets/:id/candles", requireAuth, (req, res) => {
+  const marketId = Number(req.params.id);
+  const market = db.prepare("SELECT id FROM markets WHERE id = ?").get(marketId);
+  if (!market) return res.status(404).json({ error: "Market not found" });
+
+  const seconds = CANDLE_INTERVALS[String(req.query.interval || "1h")] ?? 3600;
+  const trades = db
+    .prepare(
+      `SELECT price, quantity, CAST(strftime('%s', created_at) AS INTEGER) AS ts
+       FROM trades WHERE market_id = ? ORDER BY id`
+    )
+    .all(marketId) as { price: number; quantity: number; ts: number }[];
+
+  const candles: {
+    time: number;
+    open: number;
+    high: number;
+    low: number;
+    close: number;
+    volume: number;
+  }[] = [];
+  for (const trade of trades) {
+    const bucket = trade.ts - (trade.ts % seconds);
+    const last = candles[candles.length - 1];
+    if (last && last.time === bucket) {
+      last.high = Math.max(last.high, trade.price);
+      last.low = Math.min(last.low, trade.price);
+      last.close = trade.price;
+      last.volume += trade.quantity;
+    } else {
+      candles.push({
+        time: bucket,
+        open: trade.price,
+        high: trade.price,
+        low: trade.price,
+        close: trade.price,
+        volume: trade.quantity,
+      });
+    }
+  }
+  res.json({ interval: seconds, candles });
+});
+
 // ---- Orders ----
 
 api.post("/markets/:id/orders", requireAuth, (req, res) => {

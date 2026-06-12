@@ -308,6 +308,29 @@ label {
   .price-big { font-size: 22px; }
 }
 
+.candle-chart {
+  width: 100%;
+  height: auto;
+  display: block;
+  margin-top: 8px;
+}
+
+.chart-label {
+  fill: var(--muted);
+  font-size: 11px;
+  font-family: inherit;
+}
+
+.interval-tabs {
+  flex: 0 0 auto;
+}
+
+.interval-tabs .tab {
+  flex: 0 0 auto;
+  padding: 6px 12px;
+  font-size: 13px;
+}
+
 .book {
   display: grid;
   grid-template-columns: 1fr 1fr;
