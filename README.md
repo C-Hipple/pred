@@ -61,6 +61,7 @@ Configuration (environment variables):
 | `PORT`          | `3000`         | HTTP port                                |
 | `DATABASE_PATH` | `data/pred.db` | SQLite database file                     |
 | `JWT_SECRET`    | auto-generated | Session signing key (persisted in DB if unset) |
+| `SIGNUP_CODE`   | unset          | If set, registration requires this invite code |
 
 The whole app is a single Node process with a SQLite file, so it deploys
 anywhere you can run a container or a Node server (Fly.io, Railway, Render, a
@@ -76,8 +77,14 @@ included — it mounts a volume at `/data` and sets `DATABASE_PATH=/data/pred.db
 ```bash
 fly launch --no-deploy        # creates the app; keep the provided fly.toml
 fly volumes create pred_data --size 1
+fly secrets set SIGNUP_CODE=something-only-your-friends-know
 fly deploy
 ```
+
+**Register your own account immediately after the first deploy** — the first
+account created becomes the admin. Setting `SIGNUP_CODE` keeps strangers who
+stumble on the URL from joining; share the code with your friends along with
+the link.
 
 Notes:
 
@@ -136,3 +143,19 @@ node -e "require('better-sqlite3')('/data/pred.db')
 
 To **demote** an admin, use the same database update with `is_admin = 0`
 (there is no demote API endpoint).
+
+### Resetting a forgotten password
+
+An admin can set a new password for any user (find the user's id on the
+leaderboard, as above):
+
+```bash
+curl -s -X POST $APP/api/admin/users/4/reset-password \
+  -H "Authorization: Bearer $TOKEN" \
+  -H 'Content-Type: application/json' \
+  -d '{"password":"new-temporary-password"}'
+```
+
+Tell the user to log in with the temporary password. (There is no
+self-service change-password flow yet, so pick something they're happy to
+keep or reset it again later.)

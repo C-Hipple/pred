@@ -1,4 +1,5 @@
 import { Router } from "express";
+import bcrypt from "bcryptjs";
 import { db } from "./db.js";
 import {
   login,
@@ -21,9 +22,17 @@ function handleError(res: import("express").Response, err: unknown) {
 
 // ---- Auth ----
 
+api.get("/auth/config", (_req, res) => {
+  res.json({ inviteRequired: !!process.env.SIGNUP_CODE });
+});
+
 api.post("/auth/register", (req, res) => {
   try {
-    const user = register(req.body?.username, req.body?.password);
+    const user = register(
+      req.body?.username,
+      req.body?.password,
+      req.body?.inviteCode
+    );
     res.json({ token: signToken(user.id), user: publicUser(user) });
   } catch (err) {
     handleError(res, err);
@@ -234,6 +243,26 @@ api.post("/markets/:id/resolve", requireAuth, requireAdmin, (req, res) => {
     handleError(res, err);
   }
 });
+
+api.post(
+  "/admin/users/:id/reset-password",
+  requireAuth,
+  requireAdmin,
+  (req, res) => {
+    const password = req.body?.password;
+    if (typeof password !== "string" || password.length < 6) {
+      return res
+        .status(400)
+        .json({ error: "Password must be at least 6 characters" });
+    }
+    const result = db
+      .prepare("UPDATE users SET password_hash = ? WHERE id = ?")
+      .run(bcrypt.hashSync(password, 10), Number(req.params.id));
+    if (result.changes === 0)
+      return res.status(404).json({ error: "User not found" });
+    res.json({ ok: true });
+  }
+);
 
 api.post("/admin/users/:id/promote", requireAuth, requireAdmin, (req, res) => {
   const result = db

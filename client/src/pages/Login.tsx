@@ -1,4 +1,4 @@
-import { useState, type FormEvent } from "react";
+import { useEffect, useState, type FormEvent } from "react";
 import { api, type User } from "../api";
 import { useAuth } from "../auth";
 
@@ -7,8 +7,17 @@ export default function LoginPage() {
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
   const [password, setPassword] = useState("");
+  const [inviteCode, setInviteCode] = useState("");
+  const [inviteRequired, setInviteRequired] = useState(false);
   const [error, setError] = useState("");
   const [busy, setBusy] = useState(false);
+
+  useEffect(() => {
+    api<{ inviteRequired: boolean }>("/auth/config").then(
+      (config) => setInviteRequired(config.inviteRequired),
+      () => {}
+    );
+  }, []);
 
   async function submit(e: FormEvent) {
     e.preventDefault();
@@ -17,7 +26,10 @@ export default function LoginPage() {
     try {
       const data = await api<{ token: string; user: User }>(`/auth/${mode}`, {
         method: "POST",
-        body: { username, password },
+        body:
+          mode === "register"
+            ? { username, password, inviteCode }
+            : { username, password },
       });
       loginWith(data.token, data.user);
     } catch (err) {
@@ -66,6 +78,14 @@ export default function LoginPage() {
           autoComplete={mode === "login" ? "current-password" : "new-password"}
           required
         />
+        {mode === "register" && inviteRequired && (
+          <input
+            placeholder="Invite code"
+            value={inviteCode}
+            onChange={(e) => setInviteCode(e.target.value)}
+            required
+          />
+        )}
         {error && <div className="error">{error}</div>}
         <button className="btn primary" disabled={busy}>
           {busy ? "…" : mode === "login" ? "Log in" : "Create account"}

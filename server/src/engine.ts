@@ -183,6 +183,11 @@ export const resolveMarket = db.transaction(
       else payout = (pos.yes_shares + pos.no_shares) * 50;
       if (payout > 0) addBalance.run(payout, pos.user_id);
     }
+    // Shares are spent by the payout; clear them so nothing displays as
+    // still held on a resolved market.
+    db.prepare(
+      "UPDATE positions SET yes_shares = 0, no_shares = 0 WHERE market_id = ?"
+    ).run(marketId);
 
     db.prepare(
       "UPDATE markets SET status = 'resolved', outcome = ?, resolved_at = datetime('now') WHERE id = ?"

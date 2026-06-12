@@ -292,6 +292,13 @@ export default function MarketDetailPage() {
 
         <div className="card">
           <h3>Your position</h3>
+          {!isOpen && (
+            <div className="muted small" style={{ marginBottom: 8 }}>
+              {market.outcome === "VOID"
+                ? "Market voided — all shares were refunded at 50¢."
+                : `Market resolved ${market.outcome} — winning shares were paid out at $1.00 each.`}
+            </div>
+          )}
           <div className="position-row">
             <span className="badge yes">YES {data.position.yes_shares}</span>
             <span className="badge no">NO {data.position.no_shares}</span>
