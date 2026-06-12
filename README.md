@@ -90,6 +90,49 @@ Notes:
 
 ## Admin notes
 
-- The first registered user is the admin.
-- An admin can promote others: `POST /api/admin/users/:id/promote` (with their
-  auth token).
+The **first registered user is automatically the admin**, and only admins can
+resolve markets. There are two ways to make additional users admins:
+
+### Option 1: via the API (works anywhere)
+
+Any existing admin can promote another user. First log in as the admin to get
+a token, find the target user's id on the leaderboard, then call the promote
+endpoint:
+
+```bash
+APP=https://your-app.fly.dev        # or http://localhost:3000
+
+# 1. Log in as an admin and grab the token
+TOKEN=$(curl -s -X POST $APP/api/auth/login \
+  -H 'Content-Type: application/json' \
+  -d '{"username":"YOUR_ADMIN_USERNAME","password":"YOUR_PASSWORD"}' \
+  | python3 -c "import sys,json;print(json.load(sys.stdin)['token'])")
+
+# 2. Find the user's id (the leaderboard lists everyone with their id)
+curl -s $APP/api/leaderboard -H "Authorization: Bearer $TOKEN" | python3 -m json.tool
+
+# 3. Promote user id 4 to admin
+curl -s -X POST $APP/api/admin/users/4/promote -H "Authorization: Bearer $TOKEN"
+```
+
+### Option 2: directly in the database
+
+Set the `is_admin` flag on the `users` table. Locally (with the server
+stopped, or it's fine while running — SQLite handles it):
+
+```bash
+sqlite3 data/pred.db "UPDATE users SET is_admin = 1 WHERE username = 'friend';"
+```
+
+On Fly.io, the database lives on the volume at `/data/pred.db`. The container
+doesn't ship the `sqlite3` CLI, but the server's own driver works:
+
+```bash
+fly ssh console
+cd /app
+node -e "require('better-sqlite3')('/data/pred.db')
+  .prepare('UPDATE users SET is_admin = 1 WHERE username = ?').run('friend')"
+```
+
+To **demote** an admin, use the same database update with `is_admin = 0`
+(there is no demote API endpoint).
