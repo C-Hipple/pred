@@ -23,7 +23,17 @@ export function signToken(userId: number): string {
   return jwt.sign({ userId }, JWT_SECRET, { expiresIn: "30d" });
 }
 
-export function register(username: string, password: string): AuthUser {
+export function register(
+  username: string,
+  password: string,
+  inviteCode?: string
+): AuthUser {
+  // If SIGNUP_CODE is set, registration requires it. Keeps strangers who
+  // find the URL from joining your group's market.
+  const requiredCode = process.env.SIGNUP_CODE;
+  if (requiredCode && inviteCode !== requiredCode) {
+    throw new Error("Invalid invite code");
+  }
   username = (username || "").trim();
   if (!/^[a-zA-Z0-9_-]{2,24}$/.test(username)) {
     throw new Error(
