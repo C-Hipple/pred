@@ -4,10 +4,20 @@ A prediction market for you and your friends. Full-stack TypeScript: an
 Express + SQLite backend with a real order book, and a responsive React
 frontend that works on desktop and mobile.
 
+> ⚠️ **Just for fun — not real money.** This is a hobby project for playing
+> prediction markets with friends. Every account is funded with **play money
+> only**. There is **no real currency, no deposits, no withdrawals, and
+> nothing of monetary value** anywhere in the app. The "$" amounts, balances,
+> payouts, and leaderboard are all imaginary points. This is **not** a
+> gambling service, a financial product, or investment advice, and it is **not
+> affiliated with any real exchange or prediction market**. Use it for
+> entertainment among friends only.
+
 ## How it works
 
-- Everyone signs up and gets **$1,000** of play money. The **first account
-  created becomes the admin**.
+- Everyone signs up and gets **$1,000** of play money — fake points with no
+  real-world value whatsoever. The **first account created becomes the
+  admin**.
 - Anyone can **create a market** — a yes/no question like *"Will Sam finish
   the marathon?"*
 - Markets trade binary shares priced in cents (1–99¢). A **YES share pays
@@ -159,3 +169,22 @@ curl -s -X POST $APP/api/admin/users/4/reset-password \
 Tell the user to log in with the temporary password. (There is no
 self-service change-password flow yet, so pick something they're happy to
 keep or reset it again later.)
+
+## Disclaimer
+
+This project is provided **for fun and educational purposes only**. It is a
+toy prediction market played with **play money** — points that have **no
+monetary value** and **cannot** be bought, sold, redeemed, deposited, or
+withdrawn. Nothing in this app involves real currency or anything of value.
+
+- It is **not** a gambling, betting, or wagering service.
+- It is **not** a financial product, brokerage, exchange, or security, and
+  nothing here is financial, investment, or trading advice.
+- It is **not affiliated with, endorsed by, or connected to** any real
+  prediction market, exchange, or financial institution.
+- Any resemblance of the "$", balances, prices, or payouts to real money is
+  purely cosmetic.
+
+The software is provided "as is", without warranty of any kind. You are
+responsible for ensuring that running it among your friends complies with the
+laws and regulations that apply to you. Use it purely for entertainment.
