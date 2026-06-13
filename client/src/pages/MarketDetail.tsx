@@ -275,6 +275,12 @@ export default function MarketDetailPage() {
 
         <div className="card">
           <h3>Order book (YES)</h3>
+          {isOpen && (bids.length > 0 || asks.length > 0) && (
+            <div className="book-hint small">
+              💡 Click any order below to take the other side of it — it prefills
+              the form so you can buy instantly.
+            </div>
+          )}
           <div className="book">
             <div className="book-side">
               <div className="book-header muted small">

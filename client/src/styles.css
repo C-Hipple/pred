@@ -360,6 +360,13 @@ button.book-row:disabled { cursor: default; }
 .yes-text { color: var(--yes); }
 .no-text { color: var(--no); }
 .book-note { margin-top: 10px; }
+.book-hint {
+  margin-bottom: 12px;
+  padding: 8px 10px;
+  border-radius: 6px;
+  background: var(--row-hover, rgba(127, 127, 127, 0.12));
+  line-height: 1.4;
+}
 
 .position-row {
   display: flex;
