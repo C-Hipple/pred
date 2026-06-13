@@ -5,6 +5,15 @@ export interface User {
   isAdmin: boolean;
 }
 
+export interface Tag {
+  id: number;
+  name: string;
+}
+
+export interface TagWithCount extends Tag {
+  count: number;
+}
+
 export interface MarketSummary {
   id: number;
   title: string;
@@ -15,6 +24,7 @@ export interface MarketSummary {
   created_at: string;
   volume: number;
   lastPrice: number | null;
+  tags: Tag[];
 }
 
 export interface BookLevel {
@@ -41,7 +51,7 @@ export interface OpenOrder {
 }
 
 export interface MarketDetail {
-  market: MarketSummary & { resolved_at: string | null };
+  market: MarketSummary & { resolved_at: string | null; tags: Tag[] };
   lastPrice: number | null;
   yesBids: BookLevel[];
   noBids: BookLevel[];
