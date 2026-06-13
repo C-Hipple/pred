@@ -1,29 +1,29 @@
-# Fly.io config. The container filesystem is ephemeral, so the SQLite
-# database lives on a persistent volume mounted at /data (see [mounts]).
-# Create the volume once before first deploy:
-#   fly volumes create pred_data --size 1
-app = "pred"
-primary_region = "ord"
+# fly.toml app configuration file generated for pred-inktmg on 2026-06-13T01:52:19Z
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
+
+app = 'pred-inktmg'
+primary_region = 'ewr'
 
 [build]
-  dockerfile = "Dockerfile"
+  dockerfile = 'Dockerfile'
 
 [env]
-  PORT = "3000"
-  DATABASE_PATH = "/data/pred.db"
+  DATABASE_PATH = '/data/pred.db'
+  PORT = '3000'
 
-[mounts]
-  source = "pred_data"
-  destination = "/data"
+[[mounts]]
+  source = 'pred_data'
+  destination = '/data'
 
 [http_service]
-  internal_port = 3000
+  internal_port = 8080
   force_https = true
-  auto_stop_machines = "stop"
+  auto_stop_machines = 'stop'
   auto_start_machines = true
-  # SQLite lives on a single volume, so run exactly one machine.
   min_machines_running = 0
 
 [[vm]]
-  size = "shared-cpu-1x"
-  memory = "256mb"
+  size = 'shared-cpu-1x'
+  memory = '256mb'
