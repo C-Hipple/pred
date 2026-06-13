@@ -68,6 +68,18 @@ CREATE TABLE IF NOT EXISTS meta (
   key   TEXT PRIMARY KEY,
   value TEXT NOT NULL
 );
+
+CREATE TABLE IF NOT EXISTS tags (
+  id   INTEGER PRIMARY KEY AUTOINCREMENT,
+  name TEXT NOT NULL UNIQUE COLLATE NOCASE
+);
+
+CREATE TABLE IF NOT EXISTS market_tags (
+  market_id INTEGER NOT NULL REFERENCES markets(id),
+  tag_id    INTEGER NOT NULL REFERENCES tags(id),
+  PRIMARY KEY (market_id, tag_id)
+);
+CREATE INDEX IF NOT EXISTS idx_market_tags_tag ON market_tags (tag_id, market_id);
 `);
 
 function getOrCreateMeta(key: string, create: () => string): string {

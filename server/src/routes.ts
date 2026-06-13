@@ -63,6 +63,32 @@ const lastTradePrice = (marketId: number): number | null => {
   return row?.price ?? null;
 };
 
+// Build a map of market id -> its tags ({id, name}), sorted by name.
+const tagsByMarket = (): Map<number, { id: number; name: string }[]> => {
+  const rows = db
+    .prepare(
+      `SELECT mt.market_id AS marketId, t.id, t.name
+       FROM market_tags mt JOIN tags t ON t.id = mt.tag_id
+       ORDER BY t.name COLLATE NOCASE`
+    )
+    .all() as { marketId: number; id: number; name: string }[];
+  const map = new Map<number, { id: number; name: string }[]>();
+  for (const row of rows) {
+    const list = map.get(row.marketId) ?? [];
+    list.push({ id: row.id, name: row.name });
+    map.set(row.marketId, list);
+  }
+  return map;
+};
+
+const tagsForMarket = (marketId: number): { id: number; name: string }[] =>
+  db
+    .prepare(
+      `SELECT t.id, t.name FROM market_tags mt JOIN tags t ON t.id = mt.tag_id
+       WHERE mt.market_id = ? ORDER BY t.name COLLATE NOCASE`
+    )
+    .all(marketId) as { id: number; name: string }[];
+
 api.get("/markets", requireAuth, (_req, res) => {
   const markets = db
     .prepare(
@@ -73,12 +99,27 @@ api.get("/markets", requireAuth, (_req, res) => {
        ORDER BY m.status = 'open' DESC, m.id DESC`
     )
     .all() as Record<string, unknown>[];
+  const tags = tagsByMarket();
   res.json({
     markets: markets.map((m) => ({
       ...m,
       lastPrice: lastTradePrice(m.id as number),
+      tags: tags.get(m.id as number) ?? [],
     })),
   });
+});
+
+// All tags in the system, with how many markets carry each. Powers the
+// multi-select tag filter on the markets list.
+api.get("/tags", requireAuth, (_req, res) => {
+  const tags = db
+    .prepare(
+      `SELECT t.id, t.name, COUNT(mt.market_id) AS count
+       FROM tags t LEFT JOIN market_tags mt ON mt.tag_id = t.id
+       GROUP BY t.id ORDER BY t.name COLLATE NOCASE`
+    )
+    .all();
+  res.json({ tags });
 });
 
 api.post("/markets", requireAuth, (req, res) => {
@@ -142,7 +183,7 @@ api.get("/markets/:id", requireAuth, (req, res) => {
     .all(marketId, req.user!.id);
 
   res.json({
-    market,
+    market: { ...market, tags: tagsForMarket(marketId) },
     lastPrice: lastTradePrice(marketId),
     yesBids: book("YES"),
     noBids: book("NO"),
@@ -227,6 +268,41 @@ api.delete("/orders/:id", requireAuth, (req, res) => {
   } catch (err) {
     handleError(res, err);
   }
+});
+
+// ---- Tags ----
+
+// Anyone can tag a market. Creates the tag if it doesn't exist yet and links
+// it to the market (both idempotent). Returns the market's updated tag list.
+api.post("/markets/:id/tags", requireAuth, (req, res) => {
+  const marketId = Number(req.params.id);
+  const market = db.prepare("SELECT id FROM markets WHERE id = ?").get(marketId);
+  if (!market) return res.status(404).json({ error: "Market not found" });
+
+  const name = String(req.body?.name || "").trim().replace(/\s+/g, " ");
+  if (name.length < 1 || name.length > 30) {
+    return res.status(400).json({ error: "Tag must be 1-30 characters" });
+  }
+
+  db.prepare("INSERT OR IGNORE INTO tags (name) VALUES (?)").run(name);
+  const tag = db
+    .prepare("SELECT id FROM tags WHERE name = ? COLLATE NOCASE")
+    .get(name) as { id: number };
+  db.prepare(
+    "INSERT OR IGNORE INTO market_tags (market_id, tag_id) VALUES (?, ?)"
+  ).run(marketId, tag.id);
+
+  res.json({ tags: tagsForMarket(marketId) });
+});
+
+// Remove a tag from a market (anyone can curate). The tag itself is kept even
+// if no markets use it, so it stays available in the filter list.
+api.delete("/markets/:id/tags/:tagId", requireAuth, (req, res) => {
+  const marketId = Number(req.params.id);
+  db.prepare(
+    "DELETE FROM market_tags WHERE market_id = ? AND tag_id = ?"
+  ).run(marketId, Number(req.params.tagId));
+  res.json({ tags: tagsForMarket(marketId) });
 });
 
 // ---- Admin ----

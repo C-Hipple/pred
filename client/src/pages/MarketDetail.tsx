@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from "react";
 import { useParams } from "react-router-dom";
-import { api, cents, type Candle, type MarketDetail } from "../api";
+import { api, cents, type Candle, type MarketDetail, type Tag } from "../api";
 import { useAuth } from "../auth";
 import CandleChart from "../components/CandleChart";
 
@@ -26,6 +26,9 @@ export default function MarketDetailPage() {
   const [quantity, setQuantity] = useState("10");
   const [formError, setFormError] = useState("");
   const [notice, setNotice] = useState("");
+
+  const [tagInput, setTagInput] = useState("");
+  const [tagError, setTagError] = useState("");
 
   const load = useCallback(async () => {
     try {
@@ -130,6 +133,34 @@ export default function MarketDetailPage() {
     }
   }
 
+  async function addTag(e: FormEvent) {
+    e.preventDefault();
+    setTagError("");
+    const name = tagInput.trim();
+    if (!name) return;
+    try {
+      const { tags } = await api<{ tags: Tag[] }>(`/markets/${id}/tags`, {
+        method: "POST",
+        body: { name },
+      });
+      setData((prev) => (prev ? { ...prev, market: { ...prev.market, tags } } : prev));
+      setTagInput("");
+    } catch (err) {
+      setTagError(err instanceof Error ? err.message : "Something went wrong");
+    }
+  }
+
+  async function removeTag(tagId: number) {
+    try {
+      const { tags } = await api<{ tags: Tag[] }>(`/markets/${id}/tags/${tagId}`, {
+        method: "DELETE",
+      });
+      setData((prev) => (prev ? { ...prev, market: { ...prev.market, tags } } : prev));
+    } catch (err) {
+      setTagError(err instanceof Error ? err.message : "Something went wrong");
+    }
+  }
+
   async function resolve(outcome: "YES" | "NO" | "VOID") {
     const label =
       outcome === "VOID" ? "void this market (refunds everyone)" : `resolve ${outcome}`;
@@ -175,6 +206,38 @@ export default function MarketDetailPage() {
           </div>
         </div>
         {market.description && <p className="description">{market.description}</p>}
+        <div className="tag-section">
+          <div className="tag-list">
+            {market.tags.map((tag) => (
+              <span key={tag.id} className="tag-chip">
+                {tag.name}
+                <button
+                  type="button"
+                  className="tag-remove"
+                  title="Remove tag"
+                  onClick={() => removeTag(tag.id)}
+                >
+                  ×
+                </button>
+              </span>
+            ))}
+            {market.tags.length === 0 && (
+              <span className="muted small">No tags yet</span>
+            )}
+          </div>
+          <form onSubmit={addTag} className="tag-add">
+            <input
+              placeholder="Add a tag"
+              value={tagInput}
+              maxLength={30}
+              onChange={(e) => setTagInput(e.target.value)}
+            />
+            <button className="btn small" type="submit">
+              Add
+            </button>
+          </form>
+          {tagError && <div className="error">{tagError}</div>}
+        </div>
         {error && <div className="error">{error}</div>}
         {user?.isAdmin && isOpen && (
           <div className="admin-row">

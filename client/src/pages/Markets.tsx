@@ -1,6 +1,6 @@
-import { useEffect, useState, type FormEvent } from "react";
+import { useEffect, useMemo, useState, type FormEvent } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { api, type MarketSummary } from "../api";
+import { api, type MarketSummary, type TagWithCount } from "../api";
 
 function MarketCard({ market }: { market: MarketSummary }) {
   const price = market.lastPrice;
@@ -13,6 +13,15 @@ function MarketCard({ market }: { market: MarketSummary }) {
         <div className="muted small">
           by {market.creator} · {market.volume} shares traded
         </div>
+        {market.tags.length > 0 && (
+          <div className="tag-list">
+            {market.tags.map((tag) => (
+              <span key={tag.id} className="tag-chip">
+                {tag.name}
+              </span>
+            ))}
+          </div>
+        )}
       </div>
       <div className="market-card-price">
         {market.status === "resolved" ? (
@@ -30,6 +39,8 @@ function MarketCard({ market }: { market: MarketSummary }) {
 
 export default function MarketsPage() {
   const [markets, setMarkets] = useState<MarketSummary[]>([]);
+  const [tags, setTags] = useState<TagWithCount[]>([]);
+  const [selectedTags, setSelectedTags] = useState<number[]>([]);
   const [showCreate, setShowCreate] = useState(false);
   const [title, setTitle] = useState("");
   const [description, setDescription] = useState("");
@@ -41,7 +52,26 @@ export default function MarketsPage() {
       (data) => setMarkets(data.markets),
       () => {}
     );
+    api<{ tags: TagWithCount[] }>("/tags").then(
+      (data) => setTags(data.tags),
+      () => {}
+    );
   }, []);
+
+  function toggleTag(id: number) {
+    setSelectedTags((prev) =>
+      prev.includes(id) ? prev.filter((t) => t !== id) : [...prev, id]
+    );
+  }
+
+  // A market matches when it carries every selected tag (AND filter).
+  const filtered = useMemo(() => {
+    if (selectedTags.length === 0) return markets;
+    return markets.filter((m) => {
+      const ids = new Set(m.tags.map((t) => t.id));
+      return selectedTags.every((id) => ids.has(id));
+    });
+  }, [markets, selectedTags]);
 
   async function createMarket(e: FormEvent) {
     e.preventDefault();
@@ -57,8 +87,8 @@ export default function MarketsPage() {
     }
   }
 
-  const open = markets.filter((m) => m.status === "open");
-  const resolved = markets.filter((m) => m.status === "resolved");
+  const open = filtered.filter((m) => m.status === "open");
+  const resolved = filtered.filter((m) => m.status === "resolved");
 
   return (
     <div className="stack-lg">
@@ -88,9 +118,40 @@ export default function MarketsPage() {
         </form>
       )}
 
+      {tags.length > 0 && (
+        <div className="tag-filter">
+          <div className="row-between wrap">
+            <span className="muted small">Filter by tag</span>
+            {selectedTags.length > 0 && (
+              <button className="link-btn" onClick={() => setSelectedTags([])}>
+                Clear ({selectedTags.length})
+              </button>
+            )}
+          </div>
+          <div className="tag-list">
+            {tags.map((tag) => (
+              <button
+                key={tag.id}
+                type="button"
+                className={
+                  selectedTags.includes(tag.id)
+                    ? "tag-chip selectable active"
+                    : "tag-chip selectable"
+                }
+                onClick={() => toggleTag(tag.id)}
+              >
+                {tag.name} <span className="muted">{tag.count}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
       {open.length === 0 && !showCreate && (
         <div className="card center muted">
-          No open markets yet. Create the first one!
+          {selectedTags.length > 0
+            ? "No markets match the selected tags."
+            : "No open markets yet. Create the first one!"}
         </div>
       )}
       <div className="stack">
