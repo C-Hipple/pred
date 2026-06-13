@@ -345,6 +345,18 @@ label {
 }
 
 .book-row { font-weight: 700; }
+button.book-row {
+  width: 100%;
+  border: none;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  border-radius: 4px;
+  transition: background 0.1s ease;
+}
+button.book-row:hover:not(:disabled) { background: var(--row-hover, rgba(127, 127, 127, 0.12)); }
+button.book-row:disabled { cursor: default; }
 .yes-text { color: var(--yes); }
 .no-text { color: var(--no); }
 .book-note { margin-top: 10px; }

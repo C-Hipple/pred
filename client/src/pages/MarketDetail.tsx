@@ -62,6 +62,25 @@ export default function MarketDetailPage() {
     return { bids, asks };
   }, [data]);
 
+  // Clicking a book level prefills the order form to take that liquidity.
+  // Taking an ask (a resting NO buy) means buying YES at the ask price.
+  // Taking a bid (a resting YES buy) means buying NO at 100 - the bid price.
+  const takeLevel = useCallback(
+    (book: "bid" | "ask", levelPrice: number, levelQty: number) => {
+      if (book === "ask") {
+        setSide("YES");
+        setPrice(String(levelPrice));
+      } else {
+        setSide("NO");
+        setPrice(String(100 - levelPrice));
+      }
+      setQuantity(String(levelQty));
+      setFormError("");
+      setNotice("");
+    },
+    []
+  );
+
   if (notFound) return <div className="card center muted">Market not found.</div>;
   if (!data) return <div className="center muted">Loading…</div>;
 
@@ -264,10 +283,17 @@ export default function MarketDetailPage() {
               </div>
               {bids.length === 0 && <div className="muted small">No bids</div>}
               {bids.map((level) => (
-                <div key={level.price} className="book-row yes-text">
+                <button
+                  key={level.price}
+                  type="button"
+                  className="book-row yes-text"
+                  disabled={!isOpen}
+                  onClick={() => takeLevel("bid", level.price, level.quantity)}
+                  title={`Sell into this bid — buy NO at ${100 - level.price}¢`}
+                >
                   <span>{level.price}¢</span>
                   <span>{level.quantity}</span>
-                </div>
+                </button>
               ))}
             </div>
             <div className="book-side">
@@ -277,16 +303,23 @@ export default function MarketDetailPage() {
               </div>
               {asks.length === 0 && <div className="muted small">No asks</div>}
               {asks.map((level) => (
-                <div key={level.price} className="book-row no-text">
+                <button
+                  key={level.price}
+                  type="button"
+                  className="book-row no-text"
+                  disabled={!isOpen}
+                  onClick={() => takeLevel("ask", level.price, level.quantity)}
+                  title={`Take this ask — buy YES at ${level.price}¢`}
+                >
                   <span>{level.price}¢</span>
                   <span>{level.quantity}</span>
-                </div>
+                </button>
               ))}
             </div>
           </div>
           <div className="muted small book-note">
-            An ask is someone buying NO at 100¢ − ask. Buy YES at the ask price
-            to trade instantly.
+            Click any level to prefill the order form. Take an ask to buy YES;
+            hit a bid to sell (buy NO at 100¢ − bid) — both trade instantly.
           </div>
         </div>
 

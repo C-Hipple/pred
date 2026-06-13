@@ -250,10 +250,10 @@ api.post(
   requireAdmin,
   (req, res) => {
     const password = req.body?.password;
-    if (typeof password !== "string" || password.length < 6) {
+    if (typeof password !== "string" || password.length < 3) {
       return res
         .status(400)
-        .json({ error: "Password must be at least 6 characters" });
+        .json({ error: "Password must be at least 3 characters" });
     }
     const result = db
       .prepare("UPDATE users SET password_hash = ? WHERE id = ?")

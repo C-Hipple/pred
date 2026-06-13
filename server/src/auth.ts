@@ -40,8 +40,8 @@ export function register(
       "Username must be 2-24 characters (letters, numbers, - and _)"
     );
   }
-  if (typeof password !== "string" || password.length < 6) {
-    throw new Error("Password must be at least 6 characters");
+  if (typeof password !== "string" || password.length < 3) {
+    throw new Error("Password must be at least 3 characters");
   }
   const existing = db
     .prepare("SELECT id FROM users WHERE username = ?")
